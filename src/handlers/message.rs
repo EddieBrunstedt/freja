@@ -1,38 +1,64 @@
-use crate::{ai, data::Data};
+use crate::{
+    ai,
+    data::{Data, Error},
+};
+use anyhow::{Context, Result};
 use poise::serenity_prelude as serenity;
 use serde_json::json;
-
-type Error = Box<dyn std::error::Error + Send + Sync>;
+use std::time::Duration;
+use tracing::{error, info, warn};
 
 pub async fn handle_event(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
     _framework: poise::FrameworkContext<'_, Data, Error>,
     data: &Data,
-) -> Result<(), Error> {
-    if let serenity::FullEvent::Message { new_message } = event {
-        // Ignore bot messages
-        if new_message.author.bot {
-            return Ok(());
+) -> Result<()> {
+    match event {
+        serenity::FullEvent::Ready { data_about_bot } => {
+            info!(
+                "Bot connected and ready as \"{}\"",
+                data_about_bot.user.name
+            );
         }
-
-        if should_respond(new_message, data.bot_id) {
-            handle_message(ctx, new_message, data).await?;
+        serenity::FullEvent::Message { new_message } => {
+            if new_message.author.bot {
+                return Ok(());
+            }
+            if should_respond(new_message, data.bot_id) {
+                if let Err(e) = handle_message(ctx, new_message, data).await {
+                    error!(
+                        "Failed to handle message from {}: {e:?}",
+                        new_message.author.display_name()
+                    );
+                }
+            }
         }
+        _ => (),
     }
     Ok(())
 }
 
 fn should_respond(message: &serenity::Message, bot_id: serenity::UserId) -> bool {
+    if message.mentions.iter().any(|user| user.id == bot_id) {
+        info!("Bot mentioned in message, will attempt to respond");
+        return true;
+    }
+
     let content_lower = message.content.to_lowercase();
-    content_lower.contains("freja") || message.mentions.iter().any(|user| user.id == bot_id)
+    if content_lower.contains("freja") {
+        info!("Bot name detected in message content, responding");
+        return true;
+    }
+
+    false
 }
 
 async fn handle_message(
     ctx: &serenity::Context,
     message: &serenity::Message,
     data: &Data,
-) -> Result<(), Error> {
+) -> Result<()> {
     let _typing = message.channel_id.start_typing(&ctx.http);
 
     // Get user memory
@@ -65,7 +91,9 @@ async fn handle_message(
         .await
     {
         Ok(response) => {
-            message.channel_id.say(&ctx.http, &response).await?;
+            send_message_with_retry(ctx, message.channel_id, &response, 2)
+                .await
+                .context("Failed to send response message to Discord after retries")?;
 
             // Update memory in background
             let user_memories = data.user_memories.clone();
@@ -86,19 +114,22 @@ async fn handle_message(
                 )
                 .await
                 {
-                    eprintln!("Error updating user memory: {e:?}");
+                    error!("Failed to update user memory: {e:?}");
                 }
             });
         }
         Err(e) => {
-            eprintln!("AI response error: {e:?}");
-            message
-                .channel_id
-                .say(
-                    &ctx.http,
-                    "*sighs* I'm having trouble thinking right now... 😔",
-                )
-                .await?;
+            error!("AI response error: {e:?}");
+            if let Err(send_err) = send_message_with_retry(
+                ctx,
+                message.channel_id,
+                "*sighs* I'm having trouble thinking right now... 😔",
+                2,
+            )
+            .await
+            {
+                error!("Failed to send error message to Discord after retries: {send_err:?}");
+            }
         }
     }
 
@@ -118,8 +149,11 @@ async fn get_reply_context(
     // Try to fetch if not cached
     if let Some(reference) = &message.message_reference {
         if let Some(message_id) = reference.message_id {
-            if let Ok(referenced) = message.channel_id.message(&ctx.http, message_id).await {
-                return format_reply_context(&referenced, bot_id);
+            match message.channel_id.message(&ctx.http, message_id).await {
+                Ok(referenced) => return format_reply_context(&referenced, bot_id),
+                Err(e) => {
+                    info!("Could not fetch referenced message {message_id}: {e}");
+                }
             }
         }
     }
@@ -148,13 +182,47 @@ async fn update_user_memory(
     new_message: &str,
     freja_response: &str,
     max_tokens: u32,
-) -> Result<(), Error> {
+) -> Result<()> {
     let prompt = ai::generate_memory_prompt(current_memory, new_message, freja_response);
 
     let messages = vec![json!({ "role": "user", "content": prompt })];
 
-    let updated_memory = ai_client.chat_completion(messages, max_tokens).await?;
-    user_memories.update(user_id, updated_memory).await?;
+    let updated_memory = ai_client
+        .chat_completion(messages, max_tokens)
+        .await
+        .context("Failed to generate updated memory via AI")?;
+    user_memories
+        .update(user_id, updated_memory)
+        .await
+        .context("Failed to save updated memory to store")?;
 
     Ok(())
+}
+
+async fn send_message_with_retry(
+    ctx: &serenity::Context,
+    channel_id: serenity::ChannelId,
+    content: &str,
+    retries: u8,
+) -> Result<serenity::Message> {
+    let mut last_err = None;
+
+    for attempt in 0..=retries {
+        match channel_id.say(&ctx.http, content).await {
+            Ok(msg) => return Ok(msg),
+            Err(e) => {
+                last_err = Some(e);
+                if attempt < retries {
+                    warn!(
+                        "Discord API call failed (attempt {}/{}), retrying...",
+                        attempt + 1,
+                        retries + 1
+                    );
+                    tokio::time::sleep(Duration::from_millis(500 * (attempt as u64 + 1))).await;
+                }
+            }
+        }
+    }
+
+    Err(last_err.unwrap().into())
 }

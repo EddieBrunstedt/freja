@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,10 +16,20 @@ pub struct MemoryStore {
 }
 
 impl MemoryStore {
-    pub async fn new(file_path: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn new(file_path: &str) -> Result<Self> {
         let memories = if std::path::Path::new(file_path).exists() {
             let contents = tokio::fs::read_to_string(file_path).await?;
-            serde_json::from_str(&contents).unwrap_or_default()
+            match serde_json::from_str(&contents) {
+                Ok(memories) => memories,
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to parse memory file {}: {}. Starting with empty memory store.",
+                        file_path,
+                        e
+                    );
+                    HashMap::new()
+                }
+            }
         } else {
             HashMap::new()
         };
@@ -33,11 +44,7 @@ impl MemoryStore {
         self.memories.read().await.get(user_id).cloned()
     }
 
-    pub async fn update(
-        &self,
-        user_id: serenity::UserId,
-        memory: String,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn update(&self, user_id: serenity::UserId, memory: String) -> Result<()> {
         {
             let mut memories = self.memories.write().await;
             memories.insert(
@@ -53,10 +60,13 @@ impl MemoryStore {
         Ok(())
     }
 
-    async fn save_to_disk(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn save_to_disk(&self) -> Result<()> {
         let memories = self.memories.read().await;
-        let json = serde_json::to_string_pretty(&*memories)?;
-        tokio::fs::write(&self.file_path, json).await?;
+        let json = serde_json::to_string_pretty(&*memories)
+            .context("Failed to serialize memories to JSON")?;
+        tokio::fs::write(&self.file_path, json)
+            .await
+            .with_context(|| format!("Failed to write memory file to {}", self.file_path))?;
         Ok(())
     }
 }

@@ -1,20 +1,21 @@
+use anyhow::{Context, Result, bail};
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub discord_token: String,
-    pub openai_api_key: String,
     pub guild_id: Option<serenity::GuildId>,
-    pub memory_file: String,
-    pub max_response_tokens: u32,
     pub max_memory_tokens: u32,
+    pub max_response_tokens: u32,
+    pub memory_file: String,
+    pub openai_api_key: String,
 }
 
 impl Config {
-    pub fn from_env() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let discord_token = std::env::var("DISCORD_TOKEN")?;
-        let openai_api_key = std::env::var("OPENAI_API_KEY")?;
+    pub fn from_env() -> Result<Self> {
+        let discord_token = get_required_env_var("DISCORD_TOKEN")?;
+        let openai_api_key = get_required_env_var("OPENAI_API_KEY")?;
 
         let guild_id = std::env::var("GUILD_ID")
             .ok()
@@ -36,11 +37,22 @@ impl Config {
 
         Ok(Config {
             discord_token,
-            openai_api_key,
             guild_id,
-            memory_file,
-            max_response_tokens,
             max_memory_tokens,
+            max_response_tokens,
+            memory_file,
+            openai_api_key,
         })
     }
+}
+
+fn get_required_env_var(name: &str) -> Result<String> {
+    let value = std::env::var(name)
+        .with_context(|| format!("Missing required {name} environment variable"))?;
+
+    if value.is_empty() {
+        bail!("{} environment variable is set but empty", name);
+    }
+
+    Ok(value)
 }
