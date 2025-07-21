@@ -1,8 +1,9 @@
-use crate::data::{Context, Error};
+use crate::data::Context;
+use anyhow::Result;
 
 /// Shows what Freja remembers about you
 #[poise::command(slash_command, prefix_command)]
-pub async fn memory(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn memory(ctx: Context<'_>) -> Result<()> {
     let user_id = ctx.author().id;
 
     let memory_content = ctx

@@ -1,5 +1,8 @@
+use anyhow::{Context, Result};
 use poise::serenity_prelude as serenity;
 use std::sync::Arc;
+use tracing::{error, info};
+use tracing_subscriber::{EnvFilter, fmt};
 
 mod ai;
 mod commands;
@@ -9,11 +12,29 @@ mod handlers;
 mod memory;
 
 use config::Config;
-use data::{Data, Error};
+use data::Data;
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
-    // Load configuration
+async fn main() {
+    fmt()
+        .with_target(false)
+        .with_env_filter(
+            EnvFilter::new("info")
+                .add_directive("freja=info".parse().unwrap())
+                .add_directive("serenity=warn".parse().unwrap())
+                .add_directive("tokio=warn".parse().unwrap()),
+        )
+        .init();
+
+    if let Err(e) = run().await {
+        error!("{}", e.to_string());
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> Result<()> {
+    info!("Starting Discord bot");
+
     let config = Config::from_env()?;
 
     let intents =
@@ -34,30 +55,43 @@ async fn main() -> Result<(), Error> {
 
     let mut client = serenity::ClientBuilder::new(&discord_token, intents)
         .framework(framework)
-        .await?;
+        .await
+        .context("Failed to create Discord client")?;
 
-    client.start().await?;
+    client
+        .start()
+        .await
+        .context("Failed to start Discord bot")?;
+
     Ok(())
 }
 
 async fn setup_bot(
     ctx: &serenity::Context,
-    framework: &poise::Framework<Data, Error>,
+    framework: &poise::Framework<Data, data::Error>,
     config: Config,
-) -> Result<Data, Error> {
-    // Register commands
-    poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-    println!("✓ Registered commands globally");
+) -> Result<Data> {
+    poise::builtins::register_globally(ctx, &framework.options().commands)
+        .await
+        .context("Failed to register commands globally")?;
 
-    // Optionally register in specific guild for faster updates during development
+    info!("Registered commands globally");
+
     if let Some(guild_id) = config.guild_id {
-        poise::builtins::register_in_guild(ctx, &framework.options().commands, guild_id).await?;
-        println!("✓ Also registered commands in guild {guild_id}");
+        poise::builtins::register_in_guild(ctx, &framework.options().commands, guild_id)
+            .await
+            .context("Failed to register commands in guild")?;
+
+        info!("Also registered commands in guild {guild_id}");
     }
 
-    // Initialize data
-    let memory_store = memory::MemoryStore::new(&config.memory_file).await?;
+    let memory_store = memory::MemoryStore::new(&config.memory_file)
+        .await
+        .context("Failed to initialize memory store")?;
+
     let ai_client = ai::Client::new(config.openai_api_key.clone());
+
+    info!("Bot initialization complete");
 
     Ok(Data {
         user_memories: Arc::new(memory_store),

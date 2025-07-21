@@ -1,6 +1,6 @@
 [package]
 name = "freja"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A Discord bot with persistent memory that remembers conversations with users"
 authors = ["Eddie Brunstedt <eddie.brunstedt@protonmail.com>"]
@@ -9,9 +9,12 @@ repository = "https://gitlab.com/eddiebrunstedt/freja"
 keywords = ["discord", "bot", "chatbot"]
 
 [dependencies]
+anyhow = "1.0.98"
 chrono = "0.4.41"
 poise = "0.6.1"
 reqwest = { version = "0.12.22", features = ["json"] }
 serde = "1.0.219"
 serde_json = "1.0.141"
 tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
