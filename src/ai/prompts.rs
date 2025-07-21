@@ -35,20 +35,18 @@ pub fn generate_memory_prompt(
         "You assist a human-like Discord bot named Freja by updating her memory profiles for each user she interacts with.
 
 Current memory:
-```
 {current_memory}
-```
 
 New interaction:
-User said: \"{new_message}\"  
+User said: \"{new_message}\"
 Freja responded: \"{freja_response}\"
 
 Update the memory to reflect any new, meaningful information. Focus on:
-- Personal details the user shares  
-- Their interests, preferences, or opinions  
-- Personality traits inferred from tone or content  
+- Personal details the user shares
+- Their interests, preferences, or opinions
+- Personality traits inferred from tone or content
 - Relevant context for future conversations
 
-Keep the update concise, natural, and directly useful to Freja.  
-Return only the revised memory text — no explanations or extra output.")
+Keep the update concise, natural, and directly useful to Freja.
+Return only the revised memory text. Do not use Markdown, code blocks, or any special formatting.")
 }
