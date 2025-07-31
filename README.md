@@ -1,22 +1,33 @@
 <div align="center">
-  <h1>Ord: AI-Powered Text Processing Tool</h1>
+  <h1>Freja: AI-Powered Discord Bot</h1>
 </div>
 
-<div align="right">
-  <img src="assets/freja_logo.png" width="30%" style="border-radius: 15px;" />
-</div>
+<table>
+<tr>
+<td width="60%">
 
-<div align="left">A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions.</div>
+## About Freja
+
+A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions. Freja creates a more natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
+
+## ✨ Features
+
+- **🧠 Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
+- **💬 Natural Interactions**: Responds when mentioned or when its name appears in messages  
+- **🔄 Contextual Responses**: Understands message replies and maintains conversation flow
+- **🔍 Memory Inspection**: Users can view what the bot remembers about them via slash command
+- **⚙️ Configurable**: Flexible configuration through environment variables
+
+</td>
+<td width="40%">
+<div align="center">
+  <img src="assets/freja_logo.png" width="100%" style="border-radius: 15px; max-width: 300px;" />
+</div>
+</td>
+</tr>
+</table>
 
 ---
-
-## Features
-
-- **Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
-- **Natural Interactions**: Responds when mentioned or when its name appears in messages
-- **Contextual Responses**: Understands message replies and maintains conversation flow
-- **Memory Inspection**: Users can view what the bot remembers about them via slash command
-- **Configurable**: Flexible configuration through environment variables
 
 ## Installation
 
