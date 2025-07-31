@@ -19,7 +19,7 @@ A friendlyDiscord bot with persistent memory that remembers conversations with u
 </td>
 <td>
 <div>
-  <img src="assets/freja_logo.png" width="100%" />
+  <img src="assets/freja_logo.png" />
 </div>
 </td>
 </tr>
