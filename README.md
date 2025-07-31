@@ -1,14 +1,16 @@
+# Freja: AI-Powered Discord Bot
+
 <table>
 <tr>
 <td width="60%">
 
-## Freja: AI-Powered Discord Bot
+## About Freja
 
 A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions. Freja creates a more natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
 
 ## Features
 
-- ** Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
+- **Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
 - **Natural Interactions**: Responds when mentioned or when its name appears in messages  
 - **Contextual Responses**: Understands message replies and maintains conversation flow
 - **Memory Inspection**: Users can view what the bot remembers about them via slash command
