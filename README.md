@@ -2,7 +2,7 @@
 
 <table>
 <tr>
-<td width="60%">
+<td>
 
 ## About Freja
 
@@ -17,7 +17,7 @@ A friendlyDiscord bot with persistent memory that remembers conversations with u
 - **Configurable**: Flexible configuration through environment variables
 
 </td>
-<td width="40%">
+<td>
 <div>
   <img src="assets/freja_logo.png" width="100%" />
 </div>
