@@ -6,12 +6,12 @@
 
 ## About Freja
 
-A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions. Freja creates a more natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
+A friendlyDiscord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions. Freja creates a natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
 
 ## Features
 
 - **Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
-- **Natural Interactions**: Responds when mentioned or when its name appears in messages  
+- **Natural Interactions**: Responds when mentioned or when its name appears in messages
 - **Contextual Responses**: Understands message replies and maintains conversation flow
 - **Memory Inspection**: Users can view what the bot remembers about them via slash command
 - **Configurable**: Flexible configuration through environment variables
@@ -29,19 +29,20 @@ A Discord bot with persistent memory that remembers conversations with users, pr
 
 ### Prerequisites
 
-- Rust 1.70 or higher
 - A Discord bot token from the [Discord Developer Portal](https://discord.com/developers/applications)
 - An OpenAI API key from [OpenAI Platform](https://platform.openai.com/)
 
 ### Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://gitlab.com/eddiebrunstedt/freja.git
 cd freja
 ```
 
-2. Create a `.env` file or set environment variables:
+2. Configure by setting environment variables:
+
 ```bash
 # Required
 DISCORD_TOKEN=your_discord_bot_token
@@ -57,6 +58,7 @@ RUST_LOG=info                       # Logging level
 ```
 
 3. Build and run:
+
 ```bash
 cargo build --release
 cargo run --release
@@ -78,6 +80,7 @@ The bot responds in two ways:
 ### Memory System
 
 Freja maintains conversation context by:
+
 - Storing AI-generated summaries of interactions with each user
 - Updating memories after each conversation
 - Persisting memories to disk for reliability across restarts
@@ -87,72 +90,33 @@ Freja maintains conversation context by:
 
 All configuration is handled through environment variables:
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DISCORD_TOKEN` | Yes | - | Discord bot authentication token |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key for GPT-4 access |
-| `GUILD_ID` | No | - | Specific guild ID for command registration |
-| `MAX_MEMORY_TOKENS` | No | 400 | Maximum tokens for memory summaries |
-| `MAX_RESPONSE_TOKENS` | No | 400 | Maximum tokens for bot responses |
-| `MEMORY_FILE` | No | memories.json | Path to memory storage file |
-| `PRETTY_LOG` | No | false | Enable human-readable logging |
-| `RUST_LOG` | No | info | Logging level (error, warn, info, debug, trace) |
+| Variable              | Required | Default       | Description                                     |
+| --------------------- | -------- | ------------- | ----------------------------------------------- |
+| `DISCORD_TOKEN`       | Yes      | -             | Discord bot authentication token                |
+| `OPENAI_API_KEY`      | Yes      | -             | OpenAI API key for GPT-4 access                 |
+| `GUILD_ID`            | No       | -             | Specific guild ID for command registration      |
+| `MAX_MEMORY_TOKENS`   | No       | 400           | Maximum tokens for memory summaries             |
+| `MAX_RESPONSE_TOKENS` | No       | 400           | Maximum tokens for bot responses                |
+| `MEMORY_FILE`         | No       | memories.json | Path to memory storage file                     |
+| `PRETTY_LOG`          | No       | false         | Enable human-readable logging                   |
+| `RUST_LOG`            | No       | info          | Logging level (error, warn, info, debug, trace) |
 
 ## Architecture
 
 The bot is built with:
+
 - **[Poise](https://github.com/serenity-rs/poise)**: Discord bot framework
 - **[Serenity](https://github.com/serenity-rs/serenity)**: Discord API library
 - **[Tokio](https://tokio.rs/)**: Async runtime
 - **[OpenAI API](https://platform.openai.com/)**: GPT-4 for responses and memory management
 
-### Project Structure
-
-```
-src/
-├── ai/                 # OpenAI integration
-│   ├── client.rs      # API client implementation
-│   └── prompts.rs     # Prompt templates
-├── commands/          # Slash commands
-│   └── memory.rs      # Memory inspection command
-├── handlers/          # Event handlers
-│   └── message.rs     # Message processing
-├── memory/            # Memory persistence
-│   └── store.rs       # Storage implementation
-├── config.rs          # Configuration management
-├── data.rs           # Shared application state
-├── main.rs           # Application entry point
-└── tracing.rs        # Logging setup
-```
-
-## Development
-
-### Running Tests
-
-```bash
-cargo test
-```
-
-### Building for Production
-
-```bash
-cargo build --release
-```
-
-### Logging
+## Logging
 
 Control logging verbosity with the `RUST_LOG` environment variable:
+
 - `RUST_LOG=debug` for detailed debugging
 - `RUST_LOG=freja=debug` for debug logs only from this application
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
-
-Eddie Brunstedt <eddie.brunstedt@protonmail.com>
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
