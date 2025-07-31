@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use poise::serenity_prelude as serenity;
 use std::sync::Arc;
 use tracing::{error, info};
-use tracing_subscriber::{EnvFilter, fmt};
 
 mod ai;
 mod commands;
@@ -10,32 +9,25 @@ mod config;
 mod data;
 mod handlers;
 mod memory;
+mod tracing;
 
 use config::Config;
 use data::Data;
 
 #[tokio::main]
 async fn main() {
-    fmt()
-        .with_target(false)
-        .with_env_filter(
-            EnvFilter::new("info")
-                .add_directive("freja=info".parse().unwrap())
-                .add_directive("serenity=warn".parse().unwrap())
-                .add_directive("tokio=warn".parse().unwrap()),
-        )
-        .init();
+    let config = Config::from_env().expect("Failed to parse configuration");
 
-    if let Err(e) = run().await {
+    tracing::init_subscriber(&config);
+
+    if let Err(e) = run(config).await {
         error!("{}", e.to_string());
         std::process::exit(1);
     }
 }
 
-async fn run() -> Result<()> {
+async fn run(config: Config) -> Result<()> {
     info!("Starting Discord bot");
-
-    let config = Config::from_env()?;
 
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;

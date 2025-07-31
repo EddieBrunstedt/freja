@@ -61,7 +61,6 @@ async fn handle_message(
 ) -> Result<()> {
     let _typing = message.channel_id.start_typing(&ctx.http);
 
-    // Get user memory
     let user_memory = data
         .user_memories
         .get(&message.author.id)
@@ -69,21 +68,14 @@ async fn handle_message(
         .map(|m| m.memory)
         .unwrap_or_else(|| "No previous interactions with this user.".to_string());
 
-    // Get reply context
     let reply_context = get_reply_context(ctx, message, data.bot_id).await;
 
-    // Generate response
-    let prompt = ai::generate_response_prompt(
+    let messages = ai::generate_response_prompt(
         &user_memory,
         message.author.display_name(),
         &message.content,
         &reply_context,
     );
-
-    let messages = vec![
-        json!({ "role": "system", "content": prompt }),
-        json!({ "role": "user", "content": &message.content }),
-    ];
 
     match data
         .ai_client
@@ -95,7 +87,6 @@ async fn handle_message(
                 .await
                 .context("Failed to send response message to Discord after retries")?;
 
-            // Update memory in background
             let user_memories = data.user_memories.clone();
             let ai_client = data.ai_client.clone();
             let user_id = message.author.id;
@@ -141,12 +132,10 @@ async fn get_reply_context(
     message: &serenity::Message,
     bot_id: serenity::UserId,
 ) -> String {
-    // Try cached reference first
     if let Some(referenced) = &message.referenced_message {
         return format_reply_context(referenced, bot_id);
     }
 
-    // Try to fetch if not cached
     if let Some(reference) = &message.message_reference {
         if let Some(message_id) = reference.message_id {
             match message.channel_id.message(&ctx.http, message_id).await {

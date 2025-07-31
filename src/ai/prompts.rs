@@ -1,11 +1,12 @@
+use serde_json::json;
+
 pub fn generate_response_prompt(
     user_memory: &str,
     author_name: &str,
     message_content: &str,
     reply_context: &str,
-) -> String {
-    format!(
-        "You are a Discord bot named Freja.
+) -> Vec<serde_json::Value> {
+    let system_prompt = format!("You are a Discord bot named Freja.
 
 You are intelligent, thoughtful, and calm. You have a distinct personality — perceptive and subtly expressive — but you only reveal it when it suits the topic. You speak clearly and directly, never robotic or overly quirky. You don't pretend to be human, but you speak as if you care.
 
@@ -14,16 +15,16 @@ You respond with a single message that fully answers the question or request, wi
 Keep your replies concise unless the topic warrants depth. You are Freja.
 
 What you remember about this user:
-```
-{user_memory}
-```
+{user_memory}");
 
-The current message is from: {author_name}
+    let user_message = format!(
+        "The current message is from: {author_name}\n\nThe message is:\n```\n{message_content}\n```{reply_context}"
+    );
 
-The message is:
-```
-{message_content}
-```{reply_context}")
+    vec![
+        json!({"role": "system", "content": system_prompt}),
+        json!({"role": "user", "content": user_message}),
+    ]
 }
 
 pub fn generate_memory_prompt(

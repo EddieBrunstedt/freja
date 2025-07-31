@@ -10,30 +10,37 @@ pub struct Config {
     pub max_response_tokens: u32,
     pub memory_file: String,
     pub openai_api_key: String,
+    pub pretty_log: bool,
 }
 
 impl Config {
     pub fn from_env() -> Result<Self> {
         let discord_token = get_required_env_var("DISCORD_TOKEN")?;
-        let openai_api_key = get_required_env_var("OPENAI_API_KEY")?;
 
         let guild_id = std::env::var("GUILD_ID")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
             .map(serenity::GuildId::new);
 
-        let memory_file =
-            std::env::var("MEMORY_FILE").unwrap_or_else(|_| "memories.json".to_string());
+        let max_memory_tokens = std::env::var("MAX_MEMORY_TOKENS")
+            .unwrap_or_else(|_| "400".to_string())
+            .parse()
+            .unwrap_or(400);
 
         let max_response_tokens = std::env::var("MAX_RESPONSE_TOKENS")
             .unwrap_or_else(|_| "400".to_string())
             .parse()
             .unwrap_or(400);
 
-        let max_memory_tokens = std::env::var("MAX_MEMORY_TOKENS")
-            .unwrap_or_else(|_| "400".to_string())
+        let memory_file =
+            std::env::var("MEMORY_FILE").unwrap_or_else(|_| "memories.json".to_string());
+
+        let openai_api_key = get_required_env_var("OPENAI_API_KEY")?;
+
+        let pretty_log = std::env::var("PRETTY_LOG")
+            .unwrap_or_else(|_| "false".to_string())
             .parse()
-            .unwrap_or(400);
+            .unwrap_or(false);
 
         Ok(Config {
             discord_token,
@@ -42,6 +49,7 @@ impl Config {
             max_response_tokens,
             memory_file,
             openai_api_key,
+            pretty_log,
         })
     }
 }
