@@ -10,8 +10,8 @@ A friendlyDiscord bot with persistent memory that remembers conversations with u
 
 ## Features
 
-- **Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
 - **Natural Interactions**: Responds when mentioned or when its name appears in messages
+- **Persistent Memory**: Maintains AI-generated summaries of conversations with each user across sessions
 - **Contextual Responses**: Understands message replies and maintains conversation flow
 - **Memory Inspection**: Users can view what the bot remembers about them via slash command
 - **Configurable**: Flexible configuration through environment variables
