@@ -1,10 +1,8 @@
-<div align="center">
-  <h1>Freja: AI-Powered Discord Bot</h1>
-</div>
+# Freja: AI-Powered Discord Bot
 
-<table style="border: none; border-collapse: collapse;">
-<tr style="border: none;">
-<td width="60%" style="border: none;">
+<table>
+<tr>
+<td width="60%">
 
 ## About Freja
 
@@ -19,15 +17,13 @@ A Discord bot with persistent memory that remembers conversations with users, pr
 - **⚙️ Configurable**: Flexible configuration through environment variables
 
 </td>
-<td width="40%" style="border: none;">
-<div align="center">
-  <img src="assets/freja_logo.png" width="100%" style="border-radius: 15px; max-width: 300px;" />
+<td width="40%">
+<div>
+  <img src="assets/freja_logo.png" width="100%" />
 </div>
 </td>
 </tr>
 </table>
-
----
 
 ## Installation
 
