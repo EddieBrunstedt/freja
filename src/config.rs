@@ -1,19 +1,72 @@
+//! Configuration module for Freja Discord bot.
+//!
+//! This module handles loading configuration from environment variables and provides
+//! the core settings structure used throughout the application.
+
 use anyhow::{Context, Result, bail};
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 
+/// Main configuration structure for the Freja bot.
+///
+/// All configuration values are loaded from environment variables on startup.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    /// Discord bot token for authentication.
+    ///
+    /// Required. Obtained from Discord Developer Portal.
+    /// Environment variable: `DISCORD_TOKEN`
     pub discord_token: String,
+    /// Optional Discord guild ID for registering slash commands.
+    ///
+    /// When provided, commands will be registered to this specific guild
+    /// in addition to global registration. This enables faster command updates
+    /// during development.
+    /// Environment variable: `GUILD_ID`
     pub guild_id: Option<serenity::GuildId>,
+    /// Maximum token count for user memory summaries.
+    ///
+    /// Controls how much conversation history the bot maintains per user.
+    /// Higher values retain more context but increase API costs.
+    /// Default: 400 tokens
+    /// Environment variable: `MAX_MEMORY_TOKENS`
     pub max_memory_tokens: u32,
+    /// Maximum token count for bot responses.
+    ///
+    /// Limits the length of the bot's messages. Higher values allow
+    /// for more detailed responses but increase API costs.
+    /// Default: 400 tokens
+    /// Environment variable: `MAX_RESPONSE_TOKENS`
     pub max_response_tokens: u32,
+    /// File path for persisting user memories.
+    ///
+    /// The bot saves conversation summaries to this JSON file to maintain
+    /// context across restarts. Path can be relative or absolute.
+    /// Default: "memories.json"
+    /// Environment variable: `MEMORY_FILE`
     pub memory_file: String,
+    /// OpenAI API key for GPT model access.
+    ///
+    /// Required. Used for generating responses and updating memory summaries.
+    /// Environment variable: `OPENAI_API_KEY`
     pub openai_api_key: String,
+    /// Enable pretty-printed logs for development.
+    ///
+    /// When true, logs are formatted for human readability.
+    /// When false, logs use structured format suitable for production.
+    /// Default: false
+    /// Environment variable: `PRETTY_LOG`
     pub pretty_log: bool,
 }
 
 impl Config {
+    /// Creates a new Config instance by reading from environment variables.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required environment variables are missing or invalid:
+    /// - `DISCORD_TOKEN` must be set and non-empty
+    /// - `OPENAI_API_KEY` must be set and non-empty
     pub fn from_env() -> Result<Self> {
         let discord_token = get_required_env_var("DISCORD_TOKEN")?;
 
@@ -54,6 +107,13 @@ impl Config {
     }
 }
 
+/// Retrieves a required environment variable by name.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The environment variable is not set
+/// - The environment variable is set but empty
 fn get_required_env_var(name: &str) -> Result<String> {
     let value = std::env::var(name)
         .with_context(|| format!("Missing required {name} environment variable"))?;

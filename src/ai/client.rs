@@ -1,13 +1,22 @@
+//! OpenAI API client for chat completions.
+//!
+//! This module provides a simple interface to OpenAI's chat completion API,
+//! handling authentication, request formatting, and error handling.
+
 use anyhow::{Context, Result, bail};
 use serde_json::json;
 use std::time::Duration;
 
+/// HTTP client for interacting with OpenAI's API.
 pub struct Client {
+    /// OpenAI API key for authentication.
     api_key: String,
+    /// Reusable HTTP client with configured timeout.
     http_client: reqwest::Client,
 }
 
 impl Client {
+    /// Creates a new OpenAI API client with the provided API key.
     pub fn new(api_key: String) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -20,7 +29,24 @@ impl Client {
         }
     }
 
-    pub async fn chat_completion(
+    /// Sends a chat completion request to OpenAI's API.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - Array of message objects in OpenAI's format
+    /// * `max_tokens` - Maximum tokens for the generated response
+    ///
+    /// # Returns
+    ///
+    /// The generated text content from the model's response.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The API request fails
+    /// - The API returns a non-success status
+    /// - The response format is unexpected
+    pub async fn generate_chat_completion(
         &self,
         messages: Vec<serde_json::Value>,
         max_tokens: u32,

@@ -1,6 +1,6 @@
 use serde_json::json;
 
-pub fn generate_response_prompt(
+pub fn create_chat_response_messages(
     user_memory: &str,
     author_name: &str,
     message_content: &str,
@@ -27,10 +27,10 @@ What you remember about this user:
     ]
 }
 
-pub fn generate_memory_prompt(
+pub fn create_memory_update_prompt(
     current_memory: &str,
-    new_message: &str,
-    freja_response: &str,
+    user_message: &str,
+    bot_response: &str,
 ) -> String {
     format!(
         "You assist a human-like Discord bot named Freja by updating her memory profiles for each user she interacts with.
@@ -39,8 +39,8 @@ Current memory:
 {current_memory}
 
 New interaction:
-User said: \"{new_message}\"
-Freja responded: \"{freja_response}\"
+User said: \"{user_message}\"
+Freja responded: \"{bot_response}\"
 
 Update the memory to reflect any new, meaningful information. Focus on:
 - Personal details the user shares

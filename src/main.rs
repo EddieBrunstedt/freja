@@ -1,3 +1,5 @@
+//! Freja - A Discord bot with persistent memory.
+
 use anyhow::{Context, Result};
 use poise::serenity_prelude as serenity;
 use std::sync::Arc;
@@ -18,15 +20,25 @@ use data::Data;
 async fn main() {
     let config = Config::from_env().expect("Failed to parse configuration");
 
-    tracing::init_subscriber(&config);
+    tracing::initialize_tracing(&config);
 
-    if let Err(e) = run(config).await {
+    if let Err(e) = run_bot(config).await {
         error!("{}", e.to_string());
         std::process::exit(1);
     }
 }
 
-async fn run(config: Config) -> Result<()> {
+/// Initializes and runs the Discord bot with the provided configuration.
+///
+/// This function sets up the Discord client, registers commands, and starts
+/// the bot's event loop.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Discord client creation fails
+/// - Bot startup fails
+async fn run_bot(config: Config) -> Result<()> {
     info!("Starting Discord bot");
 
     let intents =
@@ -42,7 +54,7 @@ async fn run(config: Config) -> Result<()> {
             },
             ..Default::default()
         })
-        .setup(move |ctx, _ready, framework| Box::pin(setup_bot(ctx, framework, config)))
+        .setup(move |ctx, _ready, framework| Box::pin(initialize_bot_data(ctx, framework, config)))
         .build();
 
     let mut client = serenity::ClientBuilder::new(&discord_token, intents)
@@ -58,7 +70,19 @@ async fn run(config: Config) -> Result<()> {
     Ok(())
 }
 
-async fn setup_bot(
+/// Initializes bot data and registers commands.
+///
+/// This function is called once when the bot connects to Discord. It:
+/// - Registers slash commands globally and optionally to a specific guild
+/// - Initializes the memory store from disk
+/// - Creates the AI client for OpenAI API access
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Command registration fails
+/// - Memory store initialization fails
+async fn initialize_bot_data(
     ctx: &serenity::Context,
     framework: &poise::Framework<Data, data::Error>,
     config: Config,
@@ -77,17 +101,17 @@ async fn setup_bot(
         info!("Also registered commands in guild {guild_id}");
     }
 
-    let memory_store = memory::MemoryStore::new(&config.memory_file)
+    let user_memory_store = memory::MemoryStore::new(&config.memory_file)
         .await
         .context("Failed to initialize memory store")?;
 
-    let ai_client = ai::Client::new(config.openai_api_key.clone());
+    let openai_client = ai::Client::new(config.openai_api_key.clone());
 
     info!("Bot initialization complete");
 
     Ok(Data {
-        user_memories: Arc::new(memory_store),
-        ai_client: Arc::new(ai_client),
+        user_memories: Arc::new(user_memory_store),
+        ai_client: Arc::new(openai_client),
         bot_id: ctx.cache.current_user().id,
         config: Arc::new(config),
     })

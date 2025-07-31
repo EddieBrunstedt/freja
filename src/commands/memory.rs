@@ -1,7 +1,14 @@
+//! Memory inspection command for users.
+//!
+//! Allows users to view what the bot remembers about them from past conversations.
+
 use crate::data::Context;
 use anyhow::Result;
 
-/// Shows what Freja remembers about you
+/// Shows what Freja remembers about you.
+///
+/// This command allows users to inspect the AI-generated summary
+/// of their conversation history that the bot uses for context.
 #[poise::command(slash_command, prefix_command)]
 pub async fn memory(ctx: Context<'_>) -> Result<()> {
     let user_id = ctx.author().id;
