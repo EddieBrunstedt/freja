@@ -1,6 +1,14 @@
-# Freja
+<div align="center">
+  <h1>Ord: AI-Powered Text Processing Tool</h1>
+</div>
 
-A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions.
+<div align="right">
+  <img src="assets/logo_original.svg" width="30%" style="border-radius: 15px;" />
+</div>
+
+<div align="left">A Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions.</div>
+
+---
 
 ## Features
 
