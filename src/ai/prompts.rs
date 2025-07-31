@@ -48,6 +48,6 @@ Update the memory to reflect any new, meaningful information. Focus on:
 - Personality traits inferred from tone or content
 - Relevant context for future conversations
 
-Keep the update concise, natural, and directly useful to Freja.
+Keep the update concise, natural, and directly useful to Freja. The memory should be in the form of one long string of text, without formatting.
 Return only the revised memory text. Do not use Markdown, code blocks, or any special formatting.")
 }
