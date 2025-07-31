@@ -24,7 +24,7 @@ pub async fn memory(ctx: Context<'_>) -> Result<()> {
                 .to_string()
         });
 
-    let response = format!("**What I remember about you:**\n{memory_content}");
+    let response = format!("**Memories about you:**\n{memory_content}");
     ctx.say(response).await?;
     Ok(())
 }
