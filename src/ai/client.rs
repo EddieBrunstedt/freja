@@ -4,8 +4,10 @@
 //! handling authentication, request formatting, and error handling.
 
 use anyhow::{Context, Result, bail};
-use serde_json::json;
+use serde_json::{Value, json};
 use std::time::Duration;
+
+const RAW_DUMP_LIMIT: usize = 8_000; // keep logs sane
 
 /// HTTP client for interacting with OpenAI's API.
 pub struct Client {
@@ -19,7 +21,7 @@ impl Client {
     /// Creates a new OpenAI API client with the provided API key.
     pub fn new(api_key: String) -> Self {
         let http_client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(120))
             .build()
             .expect("Failed to build HTTP client");
 
@@ -34,7 +36,6 @@ impl Client {
     /// # Arguments
     ///
     /// * `messages` - Array of message objects in OpenAI's format
-    /// * `max_tokens` - Maximum tokens for the generated response
     ///
     /// # Returns
     ///
@@ -49,17 +50,17 @@ impl Client {
     pub async fn generate_chat_completion(
         &self,
         messages: Vec<serde_json::Value>,
-        max_tokens: u32,
     ) -> Result<String> {
         let payload = json!({
-            "model": "gpt-4o",
-            "messages": messages,
-            "max_tokens": max_tokens
+            "model": "gpt-5",
+            "input": messages
+            // "reasoning": { "effort": "minimal" },
+            // "max_output_tokens": 400
         });
 
         let response = self
             .http_client
-            .post("https://api.openai.com/v1/chat/completions")
+            .post("https://api.openai.com/v1/responses")
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
             .json(&payload)
@@ -81,12 +82,86 @@ impl Client {
             .await
             .context("Failed to parse JSON response from OpenAI API")?;
 
-        json.get("choices")
-            .and_then(|choices| choices.get(0))
-            .and_then(|choice| choice.get("message"))
-            .and_then(|message| message.get("content"))
-            .and_then(|content| content.as_str())
-            .map(|s| s.trim().to_string())
-            .context("Invalid response format from OpenAI API - missing or malformed content field")
+        extract_message_from_response(&json)
+    }
+}
+
+pub fn extract_message_from_response(json: &Value) -> Result<String> {
+    // Helpful status diagnostics if present
+    if let Some(status) = json.get("status").and_then(|x| x.as_str())
+        && status != "completed"
+    {
+        let reason = json
+            .get("incomplete_details")
+            .and_then(|d| d.get("reason"))
+            .and_then(|r| r.as_str())
+            .unwrap_or("unknown");
+        return Err(anyhow::anyhow!(
+            "Response not completed (status: {status}, reason: {reason}). Raw: {}",
+            json_snippet(json)
+        ));
+    }
+
+    // 1) Fast path: top-level output_text
+    if let Some(s) = json.get("output_text").and_then(|v| v.as_str()) {
+        return Ok(s.trim().to_string());
+    }
+
+    // 2) Common path: first output item's content blocks
+    if let Some(arr) = json
+        .get("output")
+        .and_then(|o| o.get(0))
+        .and_then(|item| item.get("content"))
+        .and_then(|c| c.as_array())
+    {
+        // Prefer explicit text-like blocks
+        if let Some(s) = arr
+            .iter()
+            .find_map(|c| c.get("text").and_then(|t| t.as_str()))
+        {
+            return Ok(s.trim().to_string());
+        }
+        // Some payloads may label it differently; try a broader scan
+        if let Some(s) = arr
+            .iter()
+            .find_map(|c| c.get("output_text").and_then(|t| t.as_str()))
+        {
+            return Ok(s.trim().to_string());
+        }
+    }
+
+    // 3) Global fallback: scan all output items/contents for any text field
+    if let Some(items) = json.get("output").and_then(|o| o.as_array()) {
+        for item in items {
+            if let Some(contents) = item.get("content").and_then(|c| c.as_array()) {
+                for c in contents {
+                    if let Some(t) = c
+                        .get("text")
+                        .and_then(|t| t.as_str())
+                        .or_else(|| c.get("output_text").and_then(|t| t.as_str()))
+                    {
+                        return Ok(t.trim().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    Err(anyhow::anyhow!(
+        "Invalid response format: no text found. Raw: {}",
+        json_snippet(json)
+    ))
+}
+
+fn json_snippet(v: &Value) -> String {
+    let s = serde_json::to_string_pretty(v).unwrap_or_else(|_| "<unprintable JSON>".into());
+    if s.len() <= RAW_DUMP_LIMIT {
+        s
+    } else {
+        format!(
+            "{}… [truncated {} chars]",
+            &s[..RAW_DUMP_LIMIT],
+            s.len() - RAW_DUMP_LIMIT
+        )
     }
 }

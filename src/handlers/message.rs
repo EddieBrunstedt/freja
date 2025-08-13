@@ -36,13 +36,13 @@ pub async fn handle_event(
             if new_message.author.bot {
                 return Ok(());
             }
-            if should_bot_respond(new_message, data.bot_id) {
-                if let Err(e) = process_message_and_respond(ctx, new_message, data).await {
-                    error!(
-                        "Failed to handle message from {}: {e:?}",
-                        new_message.author.display_name()
-                    );
-                }
+            if should_bot_respond(new_message, data.bot_id)
+                && let Err(e) = process_message_and_respond(ctx, new_message, data).await
+            {
+                error!(
+                    "Failed to handle message from {}: {e:?}",
+                    new_message.author.display_name()
+                );
             }
         }
         _ => (),
@@ -102,21 +102,30 @@ async fn process_message_and_respond(
         &reply_context,
     );
 
-    match data
-        .ai_client
-        .generate_chat_completion(messages, data.config.max_response_tokens)
-        .await
-    {
+    match data.ai_client.generate_chat_completion(messages).await {
         Ok(response) => {
-            send_discord_message_with_retry(ctx, message.channel_id, &response, 2)
+            if let Err(e) =
+                send_discord_message_with_retry(ctx, message.channel_id, &response, 2).await
+            {
+                error!("Failed to send response message to Discord after retries: {e:?}");
+
+                // Try to send a fallback error message to let the user know something went wrong
+                if let Err(fallback_err) = send_discord_message_without_retry(
+                    ctx,
+                    message.channel_id,
+                    "Sorry, I had an issue sending my response. Please try again! 😅",
+                )
                 .await
-                .context("Failed to send response message to Discord after retries")?;
+                {
+                    error!("Failed to send fallback error message: {fallback_err:?}");
+                }
+                return Ok(());
+            }
 
             let user_memories = data.user_memories.clone();
             let ai_client = data.ai_client.clone();
             let user_id = message.author.id;
             let message_content = message.content.clone();
-            let max_memory_tokens = data.config.max_memory_tokens;
 
             tokio::spawn(async move {
                 if let Err(e) = update_user_conversation_memory(
@@ -125,8 +134,6 @@ async fn process_message_and_respond(
                     user_id,
                     &user_memory,
                     &message_content,
-                    &response,
-                    max_memory_tokens,
                 )
                 .await
                 {
@@ -165,13 +172,13 @@ async fn fetch_reply_context(
         return format_message_as_reply_context(referenced, bot_id);
     }
 
-    if let Some(reference) = &message.message_reference {
-        if let Some(message_id) = reference.message_id {
-            match message.channel_id.message(&ctx.http, message_id).await {
-                Ok(referenced) => return format_message_as_reply_context(&referenced, bot_id),
-                Err(e) => {
-                    info!("Could not fetch referenced message {message_id}: {e}");
-                }
+    if let Some(reference) = &message.message_reference
+        && let Some(message_id) = reference.message_id
+    {
+        match message.channel_id.message(&ctx.http, message_id).await {
+            Ok(referenced) => return format_message_as_reply_context(&referenced, bot_id),
+            Err(e) => {
+                info!("Could not fetch referenced message {message_id}: {e}");
             }
         }
     }
@@ -215,15 +222,13 @@ async fn update_user_conversation_memory(
     user_id: serenity::UserId,
     current_memory: &str,
     user_message: &str,
-    bot_response: &str,
-    max_tokens: u32,
 ) -> Result<()> {
-    let prompt = ai::create_memory_update_prompt(current_memory, user_message, bot_response);
+    let prompt = ai::create_memory_update_prompt(current_memory, user_message);
 
     let messages = vec![json!({ "role": "user", "content": prompt })];
 
     let updated_memory = ai_client
-        .generate_chat_completion(messages, max_tokens)
+        .generate_chat_completion(messages)
         .await
         .context("Failed to generate updated memory via AI")?;
     user_memories
@@ -234,9 +239,21 @@ async fn update_user_conversation_memory(
     Ok(())
 }
 
+/// Sends a simple Discord message without retries or file handling.
+///
+/// Used as a fallback when the main message sending fails to avoid recursion.
+async fn send_discord_message_without_retry(
+    ctx: &serenity::Context,
+    channel_id: serenity::ChannelId,
+    content: &str,
+) -> Result<serenity::Message> {
+    channel_id.say(&ctx.http, content).await.map_err(Into::into)
+}
+
 /// Sends a Discord message with automatic retry on failure.
 ///
 /// Implements exponential backoff for handling transient Discord API errors.
+/// If the content exceeds Discord's 2000 character limit, it sends the content as a file instead.
 ///
 /// # Arguments
 ///
@@ -250,7 +267,19 @@ async fn send_discord_message_with_retry(
     let mut last_err = None;
 
     for attempt in 0..=max_retries {
-        match channel_id.say(&ctx.http, content).await {
+        let result = if content.len() > 2000 {
+            // Send as file if content is too long
+            let attachment = serenity::CreateAttachment::bytes(content.as_bytes(), "response.txt");
+            let message = serenity::CreateMessage::new()
+                .content("Response is too long, sending as file:")
+                .add_file(attachment);
+            channel_id.send_message(&ctx.http, message).await
+        } else {
+            // Send as regular message
+            channel_id.say(&ctx.http, content).await
+        };
+
+        match result {
             Ok(msg) => return Ok(msg),
             Err(e) => {
                 last_err = Some(e);

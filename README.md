@@ -50,8 +50,6 @@ OPENAI_API_KEY=your_openai_api_key
 
 # Optional
 GUILD_ID=your_guild_id              # For faster command registration during development
-MAX_MEMORY_TOKENS=400               # Token limit for user memory summaries
-MAX_RESPONSE_TOKENS=400             # Token limit for bot responses
 MEMORY_FILE=memories.json           # Path to memory persistence file
 PRETTY_LOG=false                    # Enable pretty logging for development
 RUST_LOG=info                       # Logging level
@@ -90,16 +88,14 @@ Freja maintains conversation context by:
 
 All configuration is handled through environment variables:
 
-| Variable              | Required | Default       | Description                                     |
-| --------------------- | -------- | ------------- | ----------------------------------------------- |
-| `DISCORD_TOKEN`       | Yes      | -             | Discord bot authentication token                |
-| `OPENAI_API_KEY`      | Yes      | -             | OpenAI API key for GPT-4 access                 |
-| `GUILD_ID`            | No       | -             | Specific guild ID for command registration      |
-| `MAX_MEMORY_TOKENS`   | No       | 400           | Maximum tokens for memory summaries             |
-| `MAX_RESPONSE_TOKENS` | No       | 400           | Maximum tokens for bot responses                |
-| `MEMORY_FILE`         | No       | memories.json | Path to memory storage file                     |
-| `PRETTY_LOG`          | No       | false         | Enable human-readable logging                   |
-| `RUST_LOG`            | No       | info          | Logging level (error, warn, info, debug, trace) |
+| Variable         | Required | Default       | Description                                     |
+| ---------------- | -------- | ------------- | ----------------------------------------------- |
+| `DISCORD_TOKEN`  | Yes      | -             | Discord bot authentication token                |
+| `OPENAI_API_KEY` | Yes      | -             | OpenAI API key for GPT-5 access                 |
+| `GUILD_ID`       | No       | -             | Specific guild ID for command registration      |
+| `MEMORY_FILE`    | No       | memories.json | Path to memory storage file                     |
+| `PRETTY_LOG`     | No       | false         | Enable human-readable logging                   |
+| `RUST_LOG`       | No       | info          | Logging level (error, warn, info, debug, trace) |
 
 ## Architecture
 
@@ -108,7 +104,7 @@ The bot is built with:
 - **[Poise](https://github.com/serenity-rs/poise)**: Discord bot framework
 - **[Serenity](https://github.com/serenity-rs/serenity)**: Discord API library
 - **[Tokio](https://tokio.rs/)**: Async runtime
-- **[OpenAI API](https://platform.openai.com/)**: GPT-4 for responses and memory management
+- **[OpenAI API](https://platform.openai.com/)**: GPT-5 for responses and memory management
 
 ## Logging
 

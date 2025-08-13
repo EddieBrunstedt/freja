@@ -17,6 +17,7 @@ pub struct Config {
     /// Required. Obtained from Discord Developer Portal.
     /// Environment variable: `DISCORD_TOKEN`
     pub discord_token: String,
+
     /// Optional Discord guild ID for registering slash commands.
     ///
     /// When provided, commands will be registered to this specific guild
@@ -24,20 +25,7 @@ pub struct Config {
     /// during development.
     /// Environment variable: `GUILD_ID`
     pub guild_id: Option<serenity::GuildId>,
-    /// Maximum token count for user memory summaries.
-    ///
-    /// Controls how much conversation history the bot maintains per user.
-    /// Higher values retain more context but increase API costs.
-    /// Default: 400 tokens
-    /// Environment variable: `MAX_MEMORY_TOKENS`
-    pub max_memory_tokens: u32,
-    /// Maximum token count for bot responses.
-    ///
-    /// Limits the length of the bot's messages. Higher values allow
-    /// for more detailed responses but increase API costs.
-    /// Default: 400 tokens
-    /// Environment variable: `MAX_RESPONSE_TOKENS`
-    pub max_response_tokens: u32,
+
     /// File path for persisting user memories.
     ///
     /// The bot saves conversation summaries to this JSON file to maintain
@@ -45,11 +33,13 @@ pub struct Config {
     /// Default: "memories.json"
     /// Environment variable: `MEMORY_FILE`
     pub memory_file: String,
+
     /// OpenAI API key for GPT model access.
     ///
     /// Required. Used for generating responses and updating memory summaries.
     /// Environment variable: `OPENAI_API_KEY`
     pub openai_api_key: String,
+
     /// Enable pretty-printed logs for development.
     ///
     /// When true, logs are formatted for human readability.
@@ -75,16 +65,6 @@ impl Config {
             .and_then(|s| s.parse::<u64>().ok())
             .map(serenity::GuildId::new);
 
-        let max_memory_tokens = std::env::var("MAX_MEMORY_TOKENS")
-            .unwrap_or_else(|_| "400".to_string())
-            .parse()
-            .unwrap_or(400);
-
-        let max_response_tokens = std::env::var("MAX_RESPONSE_TOKENS")
-            .unwrap_or_else(|_| "400".to_string())
-            .parse()
-            .unwrap_or(400);
-
         let memory_file =
             std::env::var("MEMORY_FILE").unwrap_or_else(|_| "memories.json".to_string());
 
@@ -98,8 +78,6 @@ impl Config {
         Ok(Config {
             discord_token,
             guild_id,
-            max_memory_tokens,
-            max_response_tokens,
             memory_file,
             openai_api_key,
             pretty_log,

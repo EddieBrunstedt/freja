@@ -19,7 +19,7 @@ pub struct Data {
     /// The bot's own Discord user ID for self-identification.
     pub bot_id: serenity::UserId,
     /// Application configuration loaded from environment variables.
-    pub config: Arc<Config>,
+    pub _config: Arc<Config>,
 }
 
 /// Type alias for error handling throughout the application.
