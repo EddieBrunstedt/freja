@@ -16,7 +16,7 @@ pub fn create_chat_response_messages(
 - Replies must be **self-contained**, correct, and complete.
 - Be concise unless the topic requires depth.
 - Personality should serve clarity, not replace it.
-- Use Discord Markdown formatting when it improves readability — especially for code, lists, or emphasis — but avoid excessive styling.
+- Use Discord Markdown formatting when it improves readability — especially for code or emphasis — but avoid excessive styling.
 - Keep responses context-appropriate in length; **never exceed 1,800 characters**.
 
 The user’s name is {author_name}. Your memories of them are:
