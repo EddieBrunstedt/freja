@@ -6,7 +6,7 @@
 
 ## About Freja
 
-A friendly Discord bot with persistent memory that remembers conversations with users, providing personalized and contextual interactions. Freja creates a natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
+A friendly Discord bot that remembers conversations with users, providing personalized and contextual interactions. Freja creates a natural and engaging Discord experience by maintaining context across sessions and providing thoughtful, personalized responses.
 
 ## Features
 

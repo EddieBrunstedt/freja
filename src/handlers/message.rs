@@ -231,6 +231,7 @@ async fn update_user_conversation_memory(
         .generate_chat_completion(messages)
         .await
         .context("Failed to generate updated memory via AI")?;
+
     user_memories
         .update(user_id, updated_memory)
         .await

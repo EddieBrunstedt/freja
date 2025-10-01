@@ -54,8 +54,6 @@ impl Client {
         let payload = json!({
             "model": "gpt-5",
             "input": messages
-            // "reasoning": { "effort": "minimal" },
-            // "max_output_tokens": 400
         });
 
         let response = self
@@ -96,6 +94,7 @@ pub fn extract_message_from_response(json: &Value) -> Result<String> {
             .and_then(|d| d.get("reason"))
             .and_then(|r| r.as_str())
             .unwrap_or("unknown");
+
         return Err(anyhow::anyhow!(
             "Response not completed (status: {status}, reason: {reason}). Raw: {}",
             json_snippet(json)
