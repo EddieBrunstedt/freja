@@ -12,6 +12,13 @@ use serde::{Deserialize, Serialize};
 /// All configuration values are loaded from environment variables on startup.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    /// Discord message character limit.
+    ///
+    /// Dictates where to split long messages.
+    /// Default: 2000 (In accordance with Discord's free plan)
+    /// Environment variable: `DISCORD_CHARACTER_LIMIT`
+    pub discord_character_limit: usize,
+
     /// Discord bot token for authentication.
     ///
     /// Required. Obtained from Discord Developer Portal.
@@ -58,6 +65,13 @@ impl Config {
     /// - `DISCORD_TOKEN` must be set and non-empty
     /// - `OPENAI_API_KEY` must be set and non-empty
     pub fn from_env() -> Result<Self> {
+        let discord_character_limit: usize = std::env::var("DISCORD_CHARACTER_LIMIT")
+            .ok()
+            .as_deref()
+            .unwrap_or("2000")
+            .parse()
+            .context("DISCORD_CHARACTER_LIMIT must be a valid positive integer")?;
+
         let discord_token = get_required_env_var("DISCORD_TOKEN")?;
 
         let guild_id = std::env::var("GUILD_ID")
@@ -65,17 +79,17 @@ impl Config {
             .and_then(|s| s.parse::<u64>().ok())
             .map(serenity::GuildId::new);
 
-        let memory_file =
-            std::env::var("MEMORY_FILE").unwrap_or_else(|_| "memories.json".to_string());
+        let memory_file = std::env::var("MEMORY_FILE").unwrap_or("memories.json".to_string());
 
         let openai_api_key = get_required_env_var("OPENAI_API_KEY")?;
 
         let pretty_log = std::env::var("PRETTY_LOG")
-            .unwrap_or_else(|_| "false".to_string())
+            .unwrap_or("false".to_string())
             .parse()
             .unwrap_or(false);
 
         Ok(Config {
+            discord_character_limit,
             discord_token,
             guild_id,
             memory_file,

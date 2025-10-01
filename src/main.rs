@@ -113,6 +113,6 @@ async fn initialize_bot_data(
         user_memories: Arc::new(user_memory_store),
         ai_client: Arc::new(openai_client),
         bot_id: ctx.cache.current_user().id,
-        _config: Arc::new(config),
+        config: Arc::new(config),
     })
 }

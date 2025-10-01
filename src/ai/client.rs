@@ -7,7 +7,10 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 use std::time::Duration;
 
-const RAW_DUMP_LIMIT: usize = 8_000; // keep logs sane
+/// Character limit for logs in case of extremely long log entries
+const RAW_DUMP_LIMIT: usize = 8_000;
+/// OpenAI request timeout
+const OPENAI_REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// HTTP client for interacting with OpenAI's API.
 pub struct Client {
@@ -21,7 +24,7 @@ impl Client {
     /// Creates a new OpenAI API client with the provided API key.
     pub fn new(api_key: String) -> Self {
         let http_client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(120))
+            .timeout(OPENAI_REQUEST_TIMEOUT)
             .build()
             .expect("Failed to build HTTP client");
 

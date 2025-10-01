@@ -104,8 +104,14 @@ async fn process_message_and_respond(
 
     match data.ai_client.generate_chat_completion(messages).await {
         Ok(response) => {
-            if let Err(e) =
-                send_discord_message_with_retry(ctx, message.channel_id, &response, 2).await
+            if let Err(e) = send_discord_message_with_retry(
+                ctx,
+                message.channel_id,
+                &response,
+                2,
+                data.config.discord_character_limit,
+            )
+            .await
             {
                 error!("Failed to send response message to Discord after retries: {e:?}");
 
@@ -148,6 +154,7 @@ async fn process_message_and_respond(
                 message.channel_id,
                 "*sighs* I'm having trouble thinking right now... 😔",
                 2,
+                data.config.discord_character_limit,
             )
             .await
             {
@@ -254,7 +261,7 @@ async fn send_discord_message_without_retry(
 /// Sends a Discord message with automatic retry on failure.
 ///
 /// Implements exponential backoff for handling transient Discord API errors.
-/// If the content exceeds Discord's 2000 character limit, it sends the content as a file instead.
+/// If the content exceeds Discord's character limit, it splits the message into multiple chunks.
 ///
 /// # Arguments
 ///
@@ -264,23 +271,101 @@ async fn send_discord_message_with_retry(
     channel_id: serenity::ChannelId,
     content: &str,
     max_retries: u8,
+    discord_character_limit: usize,
+) -> Result<serenity::Message> {
+    if content.len() > discord_character_limit {
+        // Split message into chunks
+        let chunks = split_message(content, discord_character_limit);
+        let mut last_message = None;
+
+        for chunk in chunks {
+            match send_single_message_with_retry(ctx, channel_id, &chunk, max_retries).await {
+                Ok(msg) => last_message = Some(msg),
+                Err(e) => return Err(e),
+            }
+        }
+
+        // Return the last message sent
+        last_message.ok_or_else(|| anyhow::anyhow!("No messages were sent"))
+    } else {
+        send_single_message_with_retry(ctx, channel_id, content, max_retries).await
+    }
+}
+
+/// Splits a message into chunks that fit within Discord's character limit.
+///
+/// Attempts to split at newlines or spaces to avoid breaking words or sentences.
+fn split_message(content: &str, max_length: usize) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut current_chunk = String::new();
+
+    for line in content.lines() {
+        // If a single line is too long, we need to split it
+        if line.len() > max_length {
+            if !current_chunk.is_empty() {
+                chunks.push(current_chunk.clone());
+                current_chunk.clear();
+            }
+
+            // Split long line by words
+            for word in line.split_whitespace() {
+                if word.len() > max_length {
+                    // If a single word is too long, just split it by characters
+                    if !current_chunk.is_empty() {
+                        chunks.push(current_chunk.clone());
+                        current_chunk.clear();
+                    }
+                    for chunk in word
+                        .as_bytes()
+                        .chunks(max_length)
+                        .map(|c| String::from_utf8_lossy(c).to_string())
+                    {
+                        chunks.push(chunk);
+                    }
+                } else if current_chunk.len() + word.len() + 1 > max_length {
+                    chunks.push(current_chunk.clone());
+                    current_chunk = word.to_string();
+                } else {
+                    if !current_chunk.is_empty() {
+                        current_chunk.push(' ');
+                    }
+                    current_chunk.push_str(word);
+                }
+            }
+            if !current_chunk.is_empty() {
+                current_chunk.push('\n');
+            }
+        } else if current_chunk.len() + line.len() + 1 > max_length {
+            // Current chunk would exceed limit, start new chunk
+            chunks.push(current_chunk.clone());
+            current_chunk = line.to_string();
+        } else {
+            // Add line to current chunk
+            if !current_chunk.is_empty() {
+                current_chunk.push('\n');
+            }
+            current_chunk.push_str(line);
+        }
+    }
+
+    if !current_chunk.is_empty() {
+        chunks.push(current_chunk);
+    }
+
+    chunks
+}
+
+/// Sends a single Discord message with retry logic.
+async fn send_single_message_with_retry(
+    ctx: &serenity::Context,
+    channel_id: serenity::ChannelId,
+    content: &str,
+    max_retries: u8,
 ) -> Result<serenity::Message> {
     let mut last_err = None;
 
     for attempt in 0..=max_retries {
-        let result = if content.len() > 2000 {
-            // Send as file if content is too long
-            let attachment = serenity::CreateAttachment::bytes(content.as_bytes(), "response.txt");
-            let message = serenity::CreateMessage::new()
-                .content("Response is too long, sending as file:")
-                .add_file(attachment);
-            channel_id.send_message(&ctx.http, message).await
-        } else {
-            // Send as regular message
-            channel_id.say(&ctx.http, content).await
-        };
-
-        match result {
+        match channel_id.say(&ctx.http, content).await {
             Ok(msg) => return Ok(msg),
             Err(e) => {
                 last_err = Some(e);
