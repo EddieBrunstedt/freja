@@ -5,7 +5,7 @@ edition = "2024"
 description = "A Discord bot with persistent memory that remembers conversations with users"
 authors = ["Eddie Brunstedt <eddie.brunstedt@protonmail.com>"]
 license = "MIT"
-repository = "https://gitlab.com/eddiebrunstedt/freja"
+repository = "https://github.com/EddieBrunstedt/freja"
 keywords = ["discord", "bot", "chatbot"]
 
 [dependencies]

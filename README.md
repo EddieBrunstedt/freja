@@ -37,7 +37,7 @@ A friendly Discord bot with persistent memory that remembers conversations with 
 1. Clone the repository:
 
 ```bash
-git clone https://gitlab.com/eddiebrunstedt/freja.git
+git clone https://github.com/EddieBrunstedt/freja.git
 cd freja
 ```
 
